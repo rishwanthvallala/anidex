@@ -1,0 +1,44 @@
+name: Deploy AniDex to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:          # allow manual trigger from Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false   # don't cancel a deploy mid-flight
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Assemble only the files needed for the serverless build.
+      # Excluded: server.js, preprocess_v2.js, scrape_mal.js, *.br files,
+      #           *.ndjson (too large), README.md (optional — remove if you want it).
+      - name: Assemble dist/
+        run: |
+          mkdir dist
+          cp dashboard.html worker.js config.js dist/
+          cp main.json.gz display.json.gz dist/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy AniDex
+        id: deploy
+        uses: actions/deploy-pages@v4

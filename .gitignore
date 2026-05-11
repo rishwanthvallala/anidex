@@ -1,0 +1,17 @@
+# Raw scraped data — too large for git (38MB), regenerate with: node scrape_mal.js
+mal_anime.ndjson
+*.ndjson
+
+# Scraper progress checkpoint
+.scrape_progress.json
+
+# Brotli payloads — server mode only, not needed in the repo
+# (serverless mode uses .gz versions which ARE committed)
+main.json.br
+display.json.br
+
+# Claude Code local settings
+.claude/
+
+# macOS
+.DS_Store

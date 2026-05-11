@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AniDex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #05080F;
+  --s1:       #080D18;
+  --s2:       #0C1220;
+  --s3:       #101828;
+  --border:   rgba(255,255,255,.055);
+  --border2:  rgba(255,255,255,.10);
+
+  --text:     #E8EEF8;
+  --text2:    #7A86A0;
+  --dim:      #38404E;
+
+  /* blue accent */
+  --v:        #2B6FE8;
+  --v2:       #60A5FA;
+  --vbg:      rgba(43,111,232,.09);
+  --vglow:    rgba(43,111,232,.28);
+
+  /* score gold */
+  --gold:     #E8B84B;
+  --goldbg:   rgba(232,184,75,.1);
+
+  --sidebar:  272px;
+  --topbar-h: 50px;
+
+  --ff-brand: 'Cormorant Garamond', Georgia, serif;
+  --ff-mono:  'Space Mono', monospace;
+  --ff-ui:    'Outfit', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--ff-ui);
+  background: var(--bg);
+  color: var(--text);
+  display: flex; flex-direction: column;
+  height: 100vh; overflow: hidden;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* subtle noise overlay */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 999;
+  pointer-events: none;
+  opacity: .018;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+/* ── LOADING ─────────────────────────────────────────────────────────────── */
+#loading {
+  position: fixed; inset: 0; z-index: 200;
+  background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0;
+}
+.load-eyebrow {
+  font-family: var(--ff-mono);
+  font-size: 10px; letter-spacing: .25em; text-transform: uppercase;
+  color: var(--v2); margin-bottom: 20px; opacity: .7;
+}
+#loading h2 {
+  font-family: var(--ff-brand);
+  font-size: 52px; font-weight: 600; font-style: italic;
+  color: var(--text); letter-spacing: -.02em; line-height: 1;
+  margin-bottom: 8px;
+}
+.load-sub {
+  font-family: var(--ff-brand); font-style: italic;
+  font-size: 16px; color: var(--v2); margin-bottom: 40px;
+  letter-spacing: .04em;
+}
+#load-bar-wrap {
+  width: 220px; height: 1px;
+  background: var(--border2);
+  margin-bottom: 14px; position: relative; overflow: hidden;
+}
+#load-bar {
+  height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--v), var(--v2));
+  transition: width .3s ease;
+  box-shadow: 0 0 12px var(--vglow);
+}
+#load-msg {
+  font-family: var(--ff-mono); font-size: 10px;
+  color: var(--dim); letter-spacing: .08em;
+}
+
+/* ── TOPBAR ──────────────────────────────────────────────────────────────── */
+#topbar {
+  display: flex; align-items: center; gap: 0;
+  height: var(--topbar-h);
+  border-bottom: 1px solid var(--border);
+  background: var(--s1);
+  flex-shrink: 0; position: relative; overflow: hidden;
+}
+/* subtle gradient shimmer in topbar */
+#topbar::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 50% 100% at 20% 50%, rgba(43,111,232,.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.brand {
+  display: flex; align-items: center; gap: 0;
+  padding: 0 20px;
+  border-right: 1px solid var(--border);
+  height: 100%; flex-shrink: 0;
+}
+.brand-wordmark {
+  font-family: var(--ff-brand); font-weight: 600; font-style: italic;
+  font-size: 20px; color: var(--text); letter-spacing: -.01em;
+  white-space: nowrap;
+}
+.brand-wordmark span { color: var(--v2); }
+
+.topbar-meta {
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 20px; height: 100%;
+  border-right: 1px solid var(--border);
+}
+#results-count {
+  font-family: var(--ff-mono); font-size: 11px;
+  color: var(--text2); white-space: nowrap;
+}
+#active-badge {
+  font-family: var(--ff-mono); font-size: 10px; font-weight: 700;
+  color: var(--bg); background: var(--v2);
+  border-radius: 3px; padding: 2px 7px;
+  display: none; letter-spacing: .04em;
+}
+
+.spacer { flex: 1; }
+
+.topbar-controls {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px; height: 100%;
+}
+.sort-label {
+  font-family: var(--ff-mono); font-size: 10px;
+  color: var(--dim); letter-spacing: .06em; text-transform: uppercase;
+}
+#sort-field, #sort-dir {
+  background: var(--s3); border: 1px solid var(--border2);
+  border-radius: 4px; color: var(--text);
+  padding: 5px 8px; font-size: 11px; font-family: var(--ff-ui);
+  cursor: pointer; outline: none; transition: border-color .15s;
+  appearance: none;
+}
+#sort-field { min-width: 100px; }
+#sort-field:focus, #sort-dir:focus { border-color: var(--v); }
+#clear-all {
+  background: none; border: 1px solid var(--border2);
+  border-radius: 4px; color: var(--text2); cursor: pointer;
+  padding: 5px 14px; font-size: 11px; font-family: var(--ff-ui);
+  transition: all .15s; letter-spacing: .01em;
+}
+#clear-all:hover { border-color: var(--v); color: var(--v2); background: var(--vbg); }
+
+/* ── ENRICHMENT BAR ──────────────────────────────────────────────────────── */
+#enrich-bar {
+  height: 1px; flex-shrink: 0;
+  background: linear-gradient(90deg, transparent, var(--v), var(--v2), var(--v), transparent);
+  background-size: 300% 100%;
+  animation: enrich 1.8s ease-in-out infinite;
+}
+@keyframes enrich { 0%,100%{background-position:0% 0} 50%{background-position:100% 0} }
+
+/* ── LAYOUT ──────────────────────────────────────────────────────────────── */
+#body { display: flex; flex: 1; overflow: hidden; }
+
+/* ── SIDEBAR ─────────────────────────────────────────────────────────────── */
+#sidebar {
+  width: var(--sidebar); min-width: var(--sidebar);
+  background: var(--s1);
+  border-right: 1px solid var(--border);
+  overflow-y: auto; overflow-x: hidden;
+}
+#sidebar::-webkit-scrollbar { width: 3px; }
+#sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.fs { border-bottom: 1px solid var(--border); }
+
+.ft {
+  font-family: var(--ff-mono);
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .14em;
+  color: var(--dim);
+  padding: 11px 16px;
+  display: flex; justify-content: space-between; align-items: center;
+  cursor: pointer; user-select: none; transition: color .12s;
+}
+.ft:hover { color: var(--text2); }
+.ft .arr { transition: transform .2s cubic-bezier(.4,0,.2,1); opacity: .6; font-style: normal; font-size: 11px; }
+.ft.open .arr { transform: rotate(90deg); opacity: 1; }
+
+.fb { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 5px; }
+.fb.hidden { display: none; }
+
+input[type=text].si, input[type=number].si {
+  width: 100%; background: var(--s3); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text); padding: 6px 10px;
+  font-size: 12px; font-family: var(--ff-ui); outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+input[type=text].si:focus, input[type=number].si:focus {
+  border-color: var(--v); box-shadow: 0 0 0 2px rgba(43,111,232,.12);
+}
+input[type=number].si { font-family: var(--ff-mono); font-size: 11px; }
+input.si::placeholder { color: var(--dim); }
+input[type=number].si::-webkit-inner-spin-button { opacity: .3; }
+
+.rr { display: flex; align-items: center; gap: 5px; }
+.rr .si { flex: 1; min-width: 0; }
+.rr > span { color: var(--dim); font-size: 12px; flex-shrink: 0; font-family: var(--ff-mono); }
+
+.pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.pill {
+  border: 1px solid var(--border); border-radius: 3px;
+  padding: 3px 9px; font-size: 11px; font-weight: 400;
+  cursor: pointer; color: var(--text2); background: transparent;
+  user-select: none; transition: all .12s; line-height: 1.45;
+  font-family: var(--ff-ui); letter-spacing: .01em;
+}
+.pill:hover { border-color: var(--v); color: var(--v2); background: var(--vbg); }
+.pill.on {
+  background: var(--v); border-color: var(--v);
+  color: #fff; box-shadow: 0 0 12px var(--vglow);
+}
+
+.tag-list { display: flex; flex-wrap: wrap; gap: 3px; max-height: 132px; overflow-y: auto; margin-top: 2px; }
+.tag-list::-webkit-scrollbar { width: 2px; }
+.tag-list::-webkit-scrollbar-thumb { background: var(--border2); }
+
+/* ── MAIN ────────────────────────────────────────────────────────────────── */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#table-wrap { flex: 1; overflow: auto; }
+#table-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
+#table-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
+#table-wrap::-webkit-scrollbar-corner { background: transparent; }
+
+table { width: max-content; min-width: 100%; border-collapse: collapse; }
+
+/* alternating rows */
+tbody tr:nth-child(even) { background: rgba(255,255,255,.013); }
+
+thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--s1);
+  padding: 9px 16px;
+  font-family: var(--ff-mono); font-size: 9px;
+  text-transform: uppercase; letter-spacing: .12em;
+  color: var(--dim); font-weight: 400; white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; user-select: none; transition: color .12s;
+}
+thead th:hover { color: var(--text2); }
+thead th.sorted { color: var(--v2); }
+thead th.sorted::after { content: ''; display: block; height: 1px; background: var(--v); margin-top: 4px; border-radius: 1px; }
+
+tbody tr { border-bottom: 1px solid var(--border); transition: background .08s; }
+tbody tr:hover { background: rgba(43,111,232,.05) !important; }
+/* left accent bar on hover via shadow on first td */
+tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 var(--v); }
+
+td { padding: 10px 16px; vertical-align: top; white-space: nowrap; font-size: 12px; }
+td.wrap { white-space: normal; max-width: 240px; }
+td.syn-td { white-space: normal; max-width: 360px; font-size: 11px; color: var(--text2); line-height: 1.7; }
+
+/* thumbnail */
+.thumb {
+  width: 42px; height: 60px; object-fit: cover;
+  border-radius: 4px; display: block;
+  background: var(--s3);
+  box-shadow: 0 4px 14px rgba(0,0,0,.6), 0 0 0 1px var(--border);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+tbody tr:hover .thumb {
+  transform: scale(1.06) translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.7), 0 0 0 1px var(--border2);
+}
+
+/* title */
+.title-a { text-decoration: none; display: block; }
+.title-a:hover .t-main { color: var(--v2); }
+.t-main {
+  color: var(--text); font-weight: 500; font-size: 12.5px;
+  line-height: 1.4; transition: color .12s; letter-spacing: -.01em;
+}
+.t-en { color: var(--text2); font-size: 11px; margin-top: 3px; line-height: 1.3; font-weight: 300; }
+.t-jp { color: var(--dim); font-size: 10px; margin-top: 2px; }
+
+/* score — the hero cell */
+.score-wrap { min-width: 68px; }
+.score-num {
+  font-family: var(--ff-mono); font-size: 16px; font-weight: 700;
+  line-height: 1; letter-spacing: -.02em;
+}
+.score-bar {
+  height: 2px; width: 54px; margin-top: 6px;
+  background: rgba(255,255,255,.07); border-radius: 0;
+  position: relative; overflow: hidden;
+}
+.score-fill { position: absolute; inset: 0; width: 0; }
+
+/* numbers */
+.num     { text-align: right; font-family: var(--ff-mono); font-size: 11.5px; color: var(--text2); }
+.num-dim { text-align: right; font-family: var(--ff-mono); font-size: 11.5px; color: var(--dim); }
+.muted   { color: var(--dim); }
+
+/* badges */
+.bdg {
+  display: inline-flex; align-items: center;
+  border-radius: 3px; padding: 2px 6px;
+  font-family: var(--ff-mono); font-size: 9px; font-weight: 700;
+  white-space: nowrap; letter-spacing: .06em; text-transform: uppercase;
+  border: 1px solid transparent;
+}
+.b-TV      { background:rgba(96,165,250,.08);  color:#7ab8f5; border-color:rgba(96,165,250,.2); }
+.b-Movie   { background:rgba(74,222,128,.08);  color:#6bcf96; border-color:rgba(74,222,128,.2); }
+.b-OVA     { background:rgba(251,146,60,.08);  color:#f0a060; border-color:rgba(251,146,60,.2); }
+.b-ONA     { background:rgba(192,132,252,.08); color:#c090f0; border-color:rgba(192,132,252,.2); }
+.b-Special { background:rgba(244,114,182,.08); color:#e880b8; border-color:rgba(244,114,182,.2); }
+.b-Music   { background:rgba(56,189,248,.08);  color:#50c0e8; border-color:rgba(56,189,248,.2); }
+.b-t-def   { background:var(--s3); color:var(--dim); border-color:var(--border); }
+
+.b-Finished { background:rgba(74,222,128,.07);  color:#6bcf96; border-color:rgba(74,222,128,.18); }
+.b-Airing   { background:rgba(52,211,153,.12);  color:#34d399; border-color:rgba(52,211,153,.25); box-shadow:0 0 6px rgba(52,211,153,.12); }
+.b-Upcoming { background:rgba(253,224,71,.07);  color:#d4a800; border-color:rgba(253,224,71,.18); }
+.b-s-def    { background:var(--s3); color:var(--dim); border-color:var(--border); }
+
+.b-G    { background:rgba(74,222,128,.07);  color:#6bcf96; border-color:rgba(74,222,128,.18); }
+.b-PG   { background:rgba(134,239,172,.07); color:#70c090; border-color:rgba(134,239,172,.18); }
+.b-PG13 { background:rgba(232,184,75,.08);  color:#c8a040; border-color:rgba(232,184,75,.2); }
+.b-R    { background:rgba(252,165,165,.07); color:#d08080; border-color:rgba(252,165,165,.18); }
+.b-Rp   { background:rgba(248,113,113,.09); color:#d06060; border-color:rgba(248,113,113,.22); }
+.b-Rx   { background:rgba(239,68,68,.1);    color:#c04040; border-color:rgba(239,68,68,.25); }
+.b-r-def{ background:var(--s3); color:var(--dim); border-color:var(--border); }
+
+/* tags — distinctive per category */
+.tag { display:inline-flex; align-items:center; border-radius:2px; padding:2px 6px; font-size:10px; font-weight:500; margin:1px; border-left:2px solid; white-space:nowrap; font-family:var(--ff-ui); }
+.tg  { background:rgba(43,111,232,.08);  border-color:var(--v);           color:var(--v2); }   /* genres: blue */
+.tt  { background:rgba(52,211,153,.07);  border-color:rgba(52,211,153,.5);color:#34d399; }      /* themes: emerald */
+.td  { background:rgba(232,184,75,.07);  border-color:rgba(232,184,75,.5);color:var(--gold); }  /* demographics: gold */
+.ts  { background:rgba(148,163,184,.07); border-color:rgba(148,163,184,.4);color:#94a3b8; }     /* studios: slate */
+
+/* synopsis */
+.syn-clamp { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.syn-more  { color:var(--v2); cursor:pointer; font-size:10px; font-weight:500; margin-top:5px; display:block; font-family:var(--ff-mono); letter-spacing:.04em; transition:color .1s; }
+.syn-more:hover { color:var(--text); }
+
+/* skeleton shimmer */
+.skel {
+  display:inline-block; border-radius:2px;
+  background: linear-gradient(90deg, var(--s2) 0%, var(--s3) 50%, var(--s2) 100%);
+  background-size:300% 100%; animation:shimmer 1.8s ease infinite;
+}
+@keyframes shimmer { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
+
+/* ── PAGINATION ──────────────────────────────────────────────────────────── */
+#pagination {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 18px; height: 44px;
+  border-top: 1px solid var(--border);
+  background: var(--s1); flex-shrink: 0;
+}
+#pagination button {
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 3px; color: var(--text2);
+  padding: 4px 12px; font-size: 12px; font-family: var(--ff-mono);
+  cursor: pointer; transition: all .12s; letter-spacing: .02em;
+}
+#pagination button:disabled { opacity: .2; cursor: default; }
+#pagination button:not(:disabled):hover { border-color: var(--v); color: var(--v2); background: var(--vbg); }
+#page-info { color: var(--text2); font-size: 11px; font-family: var(--ff-mono); }
+#per-page {
+  background: var(--s3); border: 1px solid var(--border);
+  border-radius: 3px; color: var(--text); padding: 4px 8px;
+  font-size: 11px; font-family: var(--ff-mono); cursor: pointer; outline: none;
+}
+#perf { color: var(--dim); font-size: 10px; margin-left: auto; font-family: var(--ff-mono); letter-spacing: .04em; }
+
+/* empty state */
+.empty-row td {
+  text-align: center; padding: 80px 32px;
+  color: var(--dim); font-family: var(--ff-mono);
+  font-size: 12px; letter-spacing: .06em;
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <p class="load-eyebrow">myanimelist · index</p>
+  <h2>AniDex</h2>
+  <p class="load-sub">30,000+ titles</p>
+  <div id="load-bar-wrap"><div id="load-bar"></div></div>
+  <p id="load-msg">initialising</p>
+</div>
+
+<div id="topbar">
+  <div class="brand">
+    <div class="brand-wordmark">Ani<span>Dex</span></div>
+  </div>
+  <div class="topbar-meta">
+    <span id="results-count"></span>
+    <span id="active-badge"></span>
+  </div>
+  <div class="spacer"></div>
+  <div class="topbar-controls">
+    <span class="sort-label">sort</span>
+    <select id="sort-field">
+      <option value="rank">Rank</option>
+      <option value="score">Score</option>
+      <option value="scored_by" selected>Scored by</option>
+      <option value="popularity">Popularity</option>
+      <option value="members">Members</option>
+      <option value="favorites">Favorites</option>
+      <option value="episodes">Episodes</option>
+      <option value="year">Year</option>
+      <option value="title">Title</option>
+    </select>
+    <select id="sort-dir">
+      <option value="asc">↑</option>
+      <option value="desc" selected>↓</option>
+    </select>
+    <button id="clear-all">clear filters</button>
+  </div>
+</div>
+
+<div id="enrich-bar"></div>
+
+<div id="body">
+  <div id="sidebar"></div>
+  <div id="main">
+    <div id="table-wrap">
+      <table>
+        <thead><tr id="thead-row"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div id="pagination">
+      <button id="btn-first" onclick="goPage(0)">«</button>
+      <button id="btn-prev"  onclick="goPage(currentPage-1)">‹</button>
+      <span id="page-info"></span>
+      <button id="btn-next"  onclick="goPage(currentPage+1)">›</button>
+      <button id="btn-last"  onclick="goPage(totalPages-1)">»</button>
+      <label style="color:var(--dim);font-size:10px;font-family:var(--ff-mono);margin-left:6px">
+        rows&nbsp;<select id="per-page" onchange="perPage=+this.value;currentPage=0;dispatch()">
+          <option value="25">25</option><option value="50" selected>50</option><option value="100">100</option>
+        </select>
+      </label>
+      <span id="perf"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── worker ────────────────────────────────────────────────────────────────────
+const worker = new Worker('worker.js');
+let workerReady = false;
+let displayReady = false;
+let pendingId = 0;
+
+worker.onmessage = function(e) {
+  const { type, pct, msg, total, opts, id, rows } = e.data;
+  if (type === 'progress') {
+    document.getElementById('load-bar').style.width = pct + '%';
+    document.getElementById('load-msg').textContent = msg;
+    return;
+  }
+  if (type === 'ready') {
+    workerReady = true;
+    totalAnime = total;
+    document.getElementById('loading').style.display = 'none';
+    buildSidebar(opts);
+    document.getElementById('results-count').textContent = `${total.toLocaleString()} anime`;
+    dispatch();
+    return;
+  }
+  if (type === 'enriched') {
+    displayReady = true;
+    document.getElementById('enrich-bar').style.display = 'none';
+    dispatch();
+    return;
+  }
+  if (type === 'result' && id === pendingId) {
+    const t1 = performance.now();
+    renderResult(e.data);
+    const t2 = performance.now();
+    document.getElementById('perf').textContent = `filter ${filterMs}ms · render ${(t2-t1).toFixed(0)}ms`;
+    return;
+  }
+  if (type === 'error') {
+    document.getElementById('load-msg').textContent = 'Error: ' + e.data.msg;
+  }
+};
+worker.postMessage({ type: 'load', mode: (typeof CONFIG !== 'undefined' ? CONFIG.mode : 'serverless') });
+
+// ── state ─────────────────────────────────────────────────────────────────────
+let totalAnime = 0, currentPage = 0, perPage = 50, totalPages = 1;
+let sortField = 'scored_by', sortDir = 'desc';
+let filterMs = 0;
+const sel = {
+  type:new Set(), status:new Set(), season:new Set(), rating:new Set(),
+  source:new Set(), broadcast_day:new Set(), airing:new Set(),
+  genres:new Set(), themes:new Set(), demographics:new Set(), studios:new Set(),
+};
+
+// ── sidebar builder ───────────────────────────────────────────────────────────
+const PILL_FIELDS = ['type','status','season','rating','source','broadcast_day','airing'];
+const TAG_FIELDS  = ['genres','themes','demographics','studios'];
+
+function buildSidebar(opts) {
+  const sb = document.getElementById('sidebar');
+  sb.innerHTML = '';
+
+  sb.appendChild(section('Search', `<input class="si" type="text" id="f-title" placeholder="Title…" oninput="debounce()">`));
+
+  const ranges = [
+    ['Score',     'score',     0, 10,   0.1],
+    ['Scored by', 'scored_by', 0, '',   10000],
+    ['Rank',      'rank',      1, '',   1],
+    ['Members',   'members',   0, '',   10000],
+    ['Favorites', 'favorites', 0, '',   1000],
+    ['Episodes',  'episodes',  0, '',   1],
+    ['Year',      'year',      1900, 2030, 1],
+  ];
+  for (const [label, key, mn, mx, step] of ranges) {
+    sb.appendChild(section(label,
+      `<div class="rr">
+        <input class="si" type="number" id="f-min-${key}" placeholder="min" min="${mn}" ${mx?`max="${mx}"`:''} step="${step}" oninput="dispatch()">
+        <span>—</span>
+        <input class="si" type="number" id="f-max-${key}" placeholder="max" min="${mn}" ${mx?`max="${mx}"`:''} step="${step}" oninput="dispatch()">
+      </div>`
+    ));
+  }
+
+  const pillLabels = { type:'Type', status:'Status', season:'Season', rating:'Age Rating', source:'Source', broadcast_day:'Broadcast Day', airing:'Airing' };
+  for (const field of PILL_FIELDS) {
+    const values = opts[field] || [];
+    sb.appendChild(section(pillLabels[field] || field,
+      `<div class="pills">${values.map(v =>
+        `<div class="pill" data-f="${field}" data-v="${esc(v)}" onclick="togglePill(this,'${field}','${esc(v)}')">${esc(v)}</div>`
+      ).join('')}</div>`
+    ));
+  }
+
+  const tagLabels = { genres:'Genres', themes:'Themes', demographics:'Demographics', studios:'Studios' };
+  for (const field of TAG_FIELDS) {
+    const values = opts[field] || [];
+    sb.appendChild(section(tagLabels[field] || field,
+      `<input class="si" type="text" placeholder="Search…" oninput="filterTags('${field}',this.value)">
+       <div class="tag-list" id="tl-${field}">${values.map(v =>
+         `<div class="pill" data-f="${field}" data-v="${esc(v)}" onclick="togglePill(this,'${field}','${esc(v)}')">${esc(v)}</div>`
+       ).join('')}</div>`
+    ));
+  }
+
+  document.getElementById('sort-field').addEventListener('change', e => { sortField = e.target.value; currentPage = 0; dispatch(); });
+  document.getElementById('sort-dir').addEventListener('change',   e => { sortDir   = e.target.value; currentPage = 0; dispatch(); });
+  document.getElementById('clear-all').addEventListener('click', clearAll);
+}
+
+function section(title, innerHtml) {
+  const div = document.createElement('div');
+  div.className = 'fs';
+  div.innerHTML = `<div class="ft open" onclick="toggleSection(this)">${title}<span class="arr">›</span></div><div class="fb">${innerHtml}</div>`;
+  return div;
+}
+function toggleSection(ft) { ft.classList.toggle('open'); ft.nextElementSibling.classList.toggle('hidden'); }
+function filterTags(field, q) {
+  const lq = q.toLowerCase();
+  document.querySelectorAll(`#tl-${field} .pill`).forEach(p => p.style.display = p.dataset.v.toLowerCase().includes(lq) ? '' : 'none');
+}
+function togglePill(el, field, val) {
+  if (sel[field].has(val)) { sel[field].delete(val); el.classList.remove('on'); }
+  else                      { sel[field].add(val);    el.classList.add('on'); }
+  currentPage = 0; dispatch();
+}
+
+// ── dispatch ──────────────────────────────────────────────────────────────────
+let debTimer;
+function debounce() { clearTimeout(debTimer); debTimer = setTimeout(dispatch, 160); }
+function numVal(id) { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? null : v; }
+
+function dispatch() {
+  if (!workerReady) return;
+  const id = ++pendingId;
+  const t0 = performance.now();
+  const filters = {
+    title:       document.getElementById('f-title')?.value || '',
+    minScore:    numVal('f-min-score'),    maxScore:    numVal('f-max-score'),
+    minScoredBy: numVal('f-min-scored_by'),maxScoredBy: numVal('f-max-scored_by'),
+    minRank:     numVal('f-min-rank'),     maxRank:     numVal('f-max-rank'),
+    minMembers:  numVal('f-min-members'),  maxMembers:  numVal('f-max-members'),
+    minFav:      numVal('f-min-favorites'),maxFav:      numVal('f-max-favorites'),
+    minEp:       numVal('f-min-episodes'), maxEp:       numVal('f-max-episodes'),
+    minYear:     numVal('f-min-year'),     maxYear:     numVal('f-max-year'),
+    type:[...sel.type], status:[...sel.status], season:[...sel.season],
+    rating:[...sel.rating], source:[...sel.source], broadcast_day:[...sel.broadcast_day],
+    airing:[...sel.airing], genres:[...sel.genres], themes:[...sel.themes],
+    demographics:[...sel.demographics], studios:[...sel.studios],
+  };
+  worker.postMessage({ type:'filter', id, filters, sort:{field:sortField, dir:sortDir}, page:{offset:currentPage*perPage, limit:perPage} });
+  const orig = worker.onmessage;
+  filterMs = 0;
+  worker.onmessage = function(e) {
+    if (e.data.type === 'result' && e.data.id === id) filterMs = Math.round(performance.now() - t0);
+    orig.call(this, e);
+  };
+  updateBadge(filters);
+}
+
+function updateBadge(f) {
+  let n = 0;
+  if (f.title) n++;
+  ['minScore','maxScore','minScoredBy','maxScoredBy','minRank','maxRank','minMembers','maxMembers','minFav','maxFav','minEp','maxEp','minYear','maxYear'].forEach(k => { if (f[k] != null) n++; });
+  [...PILL_FIELDS,...TAG_FIELDS].forEach(field => n += sel[field].size);
+  const b = document.getElementById('active-badge');
+  b.textContent = n + (n === 1 ? ' filter' : ' filters');
+  b.style.display = n ? 'inline' : 'none';
+}
+
+function clearAll() {
+  document.querySelectorAll('.pill.on').forEach(p => p.classList.remove('on'));
+  Object.values(sel).forEach(s => s.clear());
+  document.querySelectorAll('input[type=number], input[type=text]').forEach(i => i.value = '');
+  currentPage = 0; dispatch();
+}
+
+// ── render ────────────────────────────────────────────────────────────────────
+const COLS = [
+  { k:'img',          label:'',             sortable:false },
+  { k:'title',        label:'Title',        sortable:true  },
+  { k:'type',         label:'Type',         sortable:true  },
+  { k:'score',        label:'Score',        sortable:true  },
+  { k:'scored_by',    label:'Scored by',    sortable:true  },
+  { k:'rank',         label:'Rank',         sortable:true  },
+  { k:'popularity',   label:'Popularity',   sortable:true  },
+  { k:'members',      label:'Members',      sortable:true  },
+  { k:'favorites',    label:'Favorites',    sortable:true  },
+  { k:'episodes',     label:'Episodes',     sortable:true  },
+  { k:'status',       label:'Status',       sortable:true  },
+  { k:'year',         label:'Year',         sortable:true  },
+  { k:'season',       label:'Season',       sortable:true  },
+  { k:'genres',       label:'Genres',       sortable:false },
+  { k:'themes',       label:'Themes',       sortable:false },
+  { k:'demographics', label:'Demographics', sortable:false },
+  { k:'studios',      label:'Studios',      sortable:false },
+  { k:'source',       label:'Source',       sortable:true  },
+  { k:'rating',       label:'Age Rating',   sortable:true  },
+  { k:'duration',     label:'Duration',     sortable:false },
+  { k:'aired_from',   label:'Aired From',   sortable:true  },
+  { k:'aired_to',     label:'Aired To',     sortable:true  },
+  { k:'broadcast_day',label:'Broadcast',    sortable:true  },
+  { k:'synopsis',     label:'Synopsis',     sortable:false },
+];
+
+function buildHeader() {
+  document.getElementById('thead-row').innerHTML = COLS.map(c => {
+    if (!c.sortable) return `<th>${c.label}</th>`;
+    const active = sortField === c.k;
+    const arrow  = active ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '';
+    return `<th class="${active?'sorted':''}" onclick="thSort('${c.k}')">${c.label}${arrow}</th>`;
+  }).join('');
+}
+
+function thSort(field) {
+  if (sortField === field) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortField = field; sortDir = field === 'title' ? 'asc' : 'desc'; }
+  document.getElementById('sort-field').value = sortField;
+  document.getElementById('sort-dir').value   = sortDir;
+  currentPage = 0; dispatch();
+}
+
+function renderResult({ total, rows }) {
+  totalPages = Math.max(1, Math.ceil(total / perPage));
+  if (currentPage >= totalPages) currentPage = totalPages - 1;
+  document.getElementById('results-count').textContent = `${total.toLocaleString()} / ${totalAnime.toLocaleString()}`;
+  buildHeader();
+  const frag = document.createDocumentFragment();
+  if (!rows.length) {
+    const tr = document.createElement('tr');
+    tr.className = 'empty-row';
+    tr.innerHTML = '<td colspan="99">— no results —</td>';
+    frag.appendChild(tr);
+  } else {
+    rows.forEach((a, i) => { const tr = document.createElement('tr'); tr.innerHTML = rowHtml(a, currentPage * perPage + i); frag.appendChild(tr); });
+  }
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = ''; tbody.appendChild(frag);
+  document.getElementById('page-info').textContent = `${(currentPage+1).toLocaleString()} / ${totalPages.toLocaleString()}`;
+  document.getElementById('btn-first').disabled = currentPage === 0;
+  document.getElementById('btn-prev').disabled  = currentPage === 0;
+  document.getElementById('btn-next').disabled  = currentPage >= totalPages - 1;
+  document.getElementById('btn-last').disabled  = currentPage >= totalPages - 1;
+}
+
+function goPage(p) {
+  if (p < 0 || p >= totalPages) return;
+  currentPage = p; dispatch();
+  document.getElementById('table-wrap').scrollTop = 0;
+}
+
+// score colour tiers
+function scColor(sc) {
+  if (sc == null) return ['#3A3854', '#3A3854'];
+  if (sc >= 9.0)  return ['#C4B5FD', '#7C3AED']; // violet
+  if (sc >= 8.0)  return ['#818CF8', '#4338CA']; // indigo
+  if (sc >= 7.0)  return ['#34D399', '#059669']; // emerald
+  if (sc >= 6.0)  return ['#E8B84B', '#B8860B']; // gold
+  if (sc >= 5.0)  return ['#F97316', '#C2410C']; // orange
+  return ['#F87171', '#DC2626'];
+}
+
+function skel(w, h=10) { return `<span class="skel" style="width:${w}px;height:${h}px"></span>`; }
+
+function rowHtml(a, idx) {
+  const sc = a.score;
+  const [fg, bar] = scColor(sc);
+  const scPct = sc ? (sc / 10 * 100).toFixed(1) : 0;
+  const sid = `s${idx}`;
+
+  const typeCls = {TV:'b-TV',Movie:'b-Movie',OVA:'b-OVA',ONA:'b-ONA',Special:'b-Special',Music:'b-Music'}[a.type] || 'b-t-def';
+  const stCls   = {'Finished Airing':'b-Finished','Currently Airing':'b-Airing','Not yet aired':'b-Upcoming'}[a.status] || 'b-s-def';
+  const rtShort = a.rating ? a.rating.split(' ')[0] : null;
+  const rtCls   = {'G':'b-G','PG':'b-PG','PG-13':'b-PG13','R':'b-R','R+':'b-Rp','Rx':'b-Rx'}[rtShort] || 'b-r-def';
+
+  const tags = (str, cls) => str
+    ? str.split(', ').filter(Boolean).map(v => `<span class="tag ${cls}">${esc(v)}</span>`).join('')
+    : `<span class="muted">—</span>`;
+
+  const malUrl = `https://myanimelist.net/anime/${a.mal_id}`;
+
+  const imgEl = a.image_jpg
+    ? `<img class="thumb" src="${a.image_jpg}" loading="lazy" onerror="this.style.display='none'">`
+    : (displayReady ? '' : `<div class="thumb skel" style="height:60px"></div>`);
+
+  const enEl = a.title_english && a.title_english !== a.title
+    ? `<div class="t-en">${esc(a.title_english)}</div>`
+    : (displayReady ? '' : `<div class="t-en">${skel(100)}</div>`);
+
+  const jpEl = a.title_japanese ? `<div class="t-jp">${esc(a.title_japanese)}</div>` : '';
+
+  const dur = a.duration     ? esc(a.duration)              : (displayReady ? '—' : skel(58));
+  const af  = a.aired_from   ? a.aired_from.slice(0,10)     : (displayReady ? '—' : skel(68));
+  const at  = a.aired_to     ? a.aired_to.slice(0,10)       : (displayReady ? '—' : skel(68));
+  const bc  = a.broadcast_day ? esc(a.broadcast_day)+(a.broadcast_time?' '+a.broadcast_time:'') : (displayReady ? '—' : skel(78));
+
+  const synEl = a.synopsis
+    ? `<div class="syn-clamp" id="${sid}">${esc(a.synopsis)}</div><span class="syn-more" onclick="toggleSyn('${sid}',this)">show more</span>`
+    : (displayReady ? '<span class="muted">—</span>' : `${skel(200)}<br><span style="display:inline-block;margin-top:5px">${skel(140)}</span>`);
+
+  return `
+    <td style="padding-top:11px;padding-bottom:11px">${imgEl}</td>
+    <td class="wrap">
+      <a class="title-a" href="${malUrl}" target="_blank" rel="noopener">
+        <div class="t-main">${esc(a.title)}</div>
+      </a>${enEl}${jpEl}
+    </td>
+    <td><span class="bdg ${typeCls}">${esc(a.type||'—')}</span></td>
+    <td>
+      <div class="score-wrap">
+        <div class="score-num" style="color:${fg}">${sc != null ? sc.toFixed(2) : '—'}</div>
+        <div class="score-bar"><div class="score-fill" style="width:${scPct}%;background:${bar}"></div></div>
+      </div>
+    </td>
+    <td class="num">${a.scored_by > 0 ? a.scored_by.toLocaleString() : '<span class="muted">—</span>'}</td>
+    <td class="num-dim">${a.rank > 0 ? '#'+a.rank.toLocaleString() : '<span class="muted">—</span>'}</td>
+    <td class="num-dim">${a.popularity > 0 ? '#'+a.popularity.toLocaleString() : '<span class="muted">—</span>'}</td>
+    <td class="num">${a.members > 0 ? a.members.toLocaleString() : '<span class="muted">—</span>'}</td>
+    <td class="num">${a.favorites > 0 ? a.favorites.toLocaleString() : '<span class="muted">—</span>'}</td>
+    <td class="num">${a.episodes > 0 ? a.episodes.toLocaleString() : '<span class="muted">—</span>'}</td>
+    <td><span class="bdg ${stCls}">${esc(a.status||'—')}</span></td>
+    <td class="num-dim">${a.year > 0 ? a.year : '<span class="muted">—</span>'}</td>
+    <td class="muted" style="text-transform:capitalize">${esc(a.season||'—')}</td>
+    <td class="wrap">${tags(a.genres,'tg')}</td>
+    <td class="wrap">${tags(a.themes,'tt')}</td>
+    <td class="wrap">${tags(a.demographics,'td')}</td>
+    <td class="wrap">${tags(a.studios,'ts')}</td>
+    <td class="muted">${esc(a.source||'—')}</td>
+    <td><span class="bdg ${rtCls}" title="${esc(a.rating||'')}">${esc(rtShort||'—')}</span></td>
+    <td class="muted" style="white-space:nowrap;font-size:11px">${dur}</td>
+    <td class="muted" style="font-size:11px;white-space:nowrap">${af}</td>
+    <td class="muted" style="font-size:11px;white-space:nowrap">${at}</td>
+    <td class="muted" style="white-space:nowrap;font-size:11px">${bc}</td>
+    <td class="syn-td">${synEl}</td>`;
+}
+
+function toggleSyn(id, btn) {
+  const el = document.getElementById(id);
+  el.classList.toggle('syn-clamp');
+  btn.textContent = el.classList.contains('syn-clamp') ? 'show more' : 'show less';
+}
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
