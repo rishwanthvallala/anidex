@@ -31,7 +31,8 @@ jobs:
       - name: Assemble dist/
         run: |
           mkdir dist
-          cp dashboard.html worker.js config.js dist/
+          cp dashboard.html dist/index.html
+          cp worker.js config.js dist/
           cp main.json.gz display.json.gz dist/
 
       - name: Upload Pages artifact
