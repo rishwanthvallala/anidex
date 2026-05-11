@@ -3,10 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AniDex</title>
+<title>AniDex — Anime Index</title>
+<meta name="description" content="AniDex — browse, filter and sort every anime on MyAnimeList. 30,449 titles with instant search by score, genre, studio, year, type and more.">
+<meta name="keywords" content="anime, myanimelist, anime database, anime search, anime filter, anime index, MAL, genres, studios">
+<link rel="canonical" href="https://anidex.rishwanth.dev/">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+
+<!-- Open Graph -->
+<meta property="og:type"        content="website">
+<meta property="og:title"       content="AniDex — Anime Index">
+<meta property="og:description" content="Browse, filter and sort all 30,449 MyAnimeList anime. Instant search by score, genre, studio, year and more.">
+<meta property="og:url"         content="https://anidex.rishwanth.dev/">
+<meta property="og:image"       content="https://anidex.rishwanth.dev/logo.png">
+<meta property="og:site_name"   content="AniDex">
+
+<!-- Twitter Card -->
+<meta name="twitter:card"        content="summary_large_image">
+<meta name="twitter:title"       content="AniDex — Anime Index">
+<meta name="twitter:description" content="Browse, filter and sort all 30,449 MyAnimeList anime. Instant search by score, genre, studio, year and more.">
+<meta name="twitter:image"       content="https://anidex.rishwanth.dev/logo.png">
+
+<!-- Structured data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "AniDex",
+  "url": "https://anidex.rishwanth.dev/",
+  "description": "Browse, filter and sort all 30,449 MyAnimeList anime by score, genre, studio, year, type and more.",
+  "applicationCategory": "EntertainmentApplication",
+  "operatingSystem": "Web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="config.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,6 +64,10 @@
   --v2:       #60A5FA;
   --vbg:      rgba(43,111,232,.09);
   --vglow:    rgba(43,111,232,.28);
+
+  /* pokédex red — brand identity only */
+  --red:      #E53935;
+  --redglow:  rgba(229,57,53,.35);
 
   /* score gold */
   --gold:     #E8B84B;
@@ -71,18 +111,19 @@ body::after {
 .load-eyebrow {
   font-family: var(--ff-mono);
   font-size: 10px; letter-spacing: .25em; text-transform: uppercase;
-  color: var(--v2); margin-bottom: 20px; opacity: .7;
+  color: var(--dim); margin-bottom: 16px;
 }
 #loading h2 {
-  font-family: var(--ff-brand);
-  font-size: 52px; font-weight: 600; font-style: italic;
-  color: var(--text); letter-spacing: -.02em; line-height: 1;
-  margin-bottom: 8px;
+  font-family: 'Bungee', var(--ff-brand);
+  font-size: 52px; font-weight: 400;
+  color: var(--text); letter-spacing: .04em; line-height: 1;
+  margin-bottom: 6px;
 }
+#loading h2 span { color: var(--red); }
 .load-sub {
-  font-family: var(--ff-brand); font-style: italic;
-  font-size: 16px; color: var(--v2); margin-bottom: 40px;
-  letter-spacing: .04em;
+  font-family: var(--ff-mono);
+  font-size: 11px; color: var(--dim); margin-bottom: 40px;
+  letter-spacing: .12em; text-transform: uppercase;
 }
 #load-bar-wrap {
   width: 220px; height: 1px;
@@ -123,11 +164,17 @@ body::after {
   height: 100%; flex-shrink: 0;
 }
 .brand-wordmark {
-  font-family: var(--ff-brand); font-weight: 600; font-style: italic;
-  font-size: 20px; color: var(--text); letter-spacing: -.01em;
-  white-space: nowrap;
+  font-family: 'Bungee', var(--ff-brand);
+  font-size: 18px; color: var(--text); letter-spacing: .02em;
+  white-space: nowrap; display: flex; align-items: center; gap: 8px;
 }
-.brand-wordmark span { color: var(--v2); }
+.brand-wordmark::before {
+  content: '';
+  display: block; width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  background: var(--red);
+  box-shadow: 0 0 8px var(--redglow), 0 0 2px var(--red);
+}
+.brand-wordmark span { color: var(--red); }
 
 .topbar-meta {
   display: flex; align-items: center; gap: 16px;
@@ -407,15 +454,15 @@ tbody tr:hover .thumb {
 
 <div id="loading">
   <p class="load-eyebrow">myanimelist · index</p>
-  <h2>AniDex</h2>
-  <p class="load-sub">30,000+ titles</p>
+  <h2>Ani<span>Dex</span></h2>
+  <p class="load-sub">30,449 titles</p>
   <div id="load-bar-wrap"><div id="load-bar"></div></div>
   <p id="load-msg">initialising</p>
 </div>
 
 <div id="topbar">
   <div class="brand">
-    <div class="brand-wordmark">Ani<span>Dex</span></div>
+    <div class="brand-wordmark">ANI<span>DEX</span></div>
   </div>
   <div class="topbar-meta">
     <span id="results-count"></span>
@@ -782,8 +829,8 @@ function rowHtml(a, idx) {
       </div>
     </td>
     <td class="num">${a.scored_by > 0 ? a.scored_by.toLocaleString() : '<span class="muted">—</span>'}</td>
-    <td class="num-dim">${a.rank > 0 ? '#'+a.rank.toLocaleString() : '<span class="muted">—</span>'}</td>
-    <td class="num-dim">${a.popularity > 0 ? '#'+a.popularity.toLocaleString() : '<span class="muted">—</span>'}</td>
+    <td class="num-dim">${a.rank > 0 ? '#'+String(a.rank).padStart(4,'0') : '<span class="muted">—</span>'}</td>
+    <td class="num-dim">${a.popularity > 0 ? '#'+String(a.popularity).padStart(4,'0') : '<span class="muted">—</span>'}</td>
     <td class="num">${a.members > 0 ? a.members.toLocaleString() : '<span class="muted">—</span>'}</td>
     <td class="num">${a.favorites > 0 ? a.favorites.toLocaleString() : '<span class="muted">—</span>'}</td>
     <td class="num">${a.episodes > 0 ? a.episodes.toLocaleString() : '<span class="muted">—</span>'}</td>

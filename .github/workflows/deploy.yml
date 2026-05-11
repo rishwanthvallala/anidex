@@ -32,7 +32,7 @@ jobs:
         run: |
           mkdir dist
           cp dashboard.html dist/index.html
-          cp worker.js config.js dist/
+          cp worker.js config.js logo.png dist/
           cp main.json.gz display.json.gz dist/
 
       - name: Upload Pages artifact
