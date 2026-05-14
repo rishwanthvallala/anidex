@@ -279,24 +279,31 @@ input.si::placeholder { color: var(--dim); }
 .rs-bar { flex: 1; border-radius: 1px 1px 0 0; background: var(--border2); transition: background .15s, height .1s; min-height: 2px; }
 .rs-bar.in { background: var(--v); opacity: .7; }
 
-.rs-track-wrap { position: relative; height: 20px; }
-.rs-track { position: absolute; top: 50%; transform: translateY(-50%); inset-inline: 0; height: 3px; background: var(--border2); border-radius: 2px; pointer-events: none; }
-.rs-fill  { position: absolute; top: 0; height: 100%; background: var(--v); border-radius: 2px; transition: left .05s, width .05s; }
+.rs-track-wrap { position: relative; height: 4px; margin: 14px 0 8px; }
+.rs-track { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--border2); border-radius: 2px; pointer-events: none; }
+.rs-fill  { position: absolute; top: 0; bottom: 0; background: var(--v); border-radius: 2px; }
 
 .rs-thumb {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   -webkit-appearance: none; appearance: none;
-  background: transparent; pointer-events: none; margin: 0; padding: 0;
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  left: -7px; width: calc(100% + 14px);
+  height: 20px;
+  margin: 0; padding: 0; border: none;
+  background: transparent; pointer-events: none; outline: none;
 }
+.rs-thumb::-webkit-slider-runnable-track { height: 4px; background: transparent; }
 .rs-thumb::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
+  pointer-events: all;
   width: 14px; height: 14px; border-radius: 50%;
   background: var(--v2); border: 2px solid var(--bg);
-  cursor: pointer; pointer-events: all;
+  cursor: pointer; margin-top: -5px;
   box-shadow: 0 0 0 2px rgba(43,111,232,.3);
   transition: transform .1s, box-shadow .1s;
 }
 .rs-thumb::-webkit-slider-thumb:hover { transform: scale(1.2); box-shadow: 0 0 0 3px rgba(43,111,232,.4); }
+.rs-thumb::-moz-range-track { height: 4px; background: transparent; }
 .rs-thumb::-moz-range-thumb {
   width: 14px; height: 14px; border-radius: 50%;
   background: var(--v2); border: 2px solid var(--bg);
@@ -645,13 +652,13 @@ function valToPos(v, min, max, log) {
 
 // ── range filter config ───────────────────────────────────────────────────────
 const RANGE_CFG = [
-  { key:'score',     label:'Score',     log:false, fmt:v => v.toFixed(1) },
-  { key:'scored_by', label:'Scored by', log:true,  fmt:v => fmtK(v) },
-  { key:'rank',      label:'Rank',      log:false, fmt:v => '#'+String(Math.round(v)).padStart(4,'0') },
-  { key:'members',   label:'Members',   log:true,  fmt:v => fmtK(v) },
-  { key:'favorites', label:'Favorites', log:true,  fmt:v => fmtK(v) },
-  { key:'episodes',  label:'Episodes',  log:false, fmt:v => Math.round(v) },
-  { key:'year',      label:'Year',      log:false, fmt:v => Math.round(v) },
+  { key:'score',     label:'Score',     log:false, defMin:0,    defMax:10,      fmt:v => v.toFixed(1) },
+  { key:'scored_by', label:'Scored by', log:true,  defMin:100,  defMax:3100000, fmt:v => fmtK(v) },
+  { key:'rank',      label:'Rank',      log:false, defMin:1,    defMax:30449,   fmt:v => '#'+String(Math.round(v)).padStart(4,'0') },
+  { key:'members',   label:'Members',   log:true,  defMin:100,  defMax:2100000, fmt:v => fmtK(v) },
+  { key:'favorites', label:'Favorites', log:true,  defMin:0,    defMax:200000,  fmt:v => fmtK(v) },
+  { key:'episodes',  label:'Episodes',  log:false, defMin:1,    defMax:3000,    fmt:v => Math.round(v) },
+  { key:'year',      label:'Year',      log:false, defMin:1960, defMax:2026,    fmt:v => Math.round(v) },
 ];
 
 const PILL_CFG = [
@@ -684,9 +691,8 @@ function buildSidebar(opts, stats) {
 
   // range sliders with histograms
   for (const cfg of RANGE_CFG) {
-    const fr = stats?.fieldRanges?.[cfg.key];
-    const hist = stats?.histograms?.[cfg.key] || [];
-    if (!fr) continue;
+    const fr   = stats?.fieldRanges?.[cfg.key] || [cfg.defMin, cfg.defMax];
+    const hist = stats?.histograms?.[cfg.key]  || [];
     const [mn, mx] = fr;
     rsState[cfg.key] = { lo: mn, hi: mx, min: mn, max: mx, log: cfg.log, fmt: cfg.fmt, active: false };
     sb.appendChild(section(cfg.label, buildRangeSlider(cfg.key, mn, mx, cfg.log, cfg.fmt, hist)));
@@ -777,7 +783,7 @@ function initRangeSlider(key) {
         bar.classList.toggle('in', f >= loFrac && f <= hiFrac);
       });
 
-      if (dispatch_) { currentPage = 0; window.dispatch(); }
+      if (dispatch_) { currentPage = 0; dispatch(); }
     }
 
     lo.addEventListener('input', () => update());
