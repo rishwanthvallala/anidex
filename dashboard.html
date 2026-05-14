@@ -619,7 +619,7 @@ let sortField = 'scored_by', sortDir = 'desc';
 let filterMs = 0;
 const sel = {
   type:new Set(), status:new Set(), season:new Set(), rating:new Set(),
-  source:new Set(), broadcast_day:new Set(), airing:new Set(),
+  source:new Set(), airing:new Set(),
   genres:new Set(), themes:new Set(), demographics:new Set(), studios:new Set(),
 };
 // Range slider state: key → { lo, hi, min, max, log, active }
@@ -662,13 +662,12 @@ const RANGE_CFG = [
 ];
 
 const PILL_CFG = [
-  { key:'type',          label:'Type' },
-  { key:'status',        label:'Status' },
-  { key:'season',        label:'Season' },
-  { key:'rating',        label:'Age Rating' },
-  { key:'source',        label:'Source' },
-  { key:'broadcast_day', label:'Broadcast Day' },
-  { key:'airing',        label:'Airing' },
+  { key:'type',   label:'Type' },
+  { key:'status', label:'Status' },
+  { key:'season', label:'Season' },
+  { key:'rating', label:'Age Rating' },
+  { key:'source', label:'Source' },
+  { key:'airing', label:'Airing' },
 ];
 const TAG_CFG = [
   { key:'genres',       label:'Genres' },
@@ -851,7 +850,7 @@ function dispatch() {
     minRank, maxRank, minMembers, maxMembers,
     minFav, maxFav, minEp, maxEp, minYear, maxYear,
     type:[...sel.type], status:[...sel.status], season:[...sel.season],
-    rating:[...sel.rating], source:[...sel.source], broadcast_day:[...sel.broadcast_day],
+    rating:[...sel.rating], source:[...sel.source],
     airing:[...sel.airing], genres:[...sel.genres], themes:[...sel.themes],
     demographics:[...sel.demographics], studios:[...sel.studios],
   };

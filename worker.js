@@ -287,7 +287,8 @@ function computeStats() {
 
   // Value counts for chips
   const counts = {};
-  ['type','status','season','rating','source','broadcast_day'].forEach(f => {
+  // broadcast_day is in display.json (not main), so excluded here
+  ['type','status','season','rating','source'].forEach(f => {
     counts[f] = {};
     D[f].forEach(v => { if (v) counts[f][v] = (counts[f][v]||0) + 1; });
   });
