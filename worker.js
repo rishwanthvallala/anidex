@@ -53,7 +53,10 @@ async function loadMain() {
   self.postMessage({ type: 'progress', pct: 88, msg: 'Building indexes…' });
   buildIndexes();
 
-  self.postMessage({ type: 'ready', total: D.n, opts: D.opts });
+  self.postMessage({ type: 'progress', pct: 96, msg: 'Computing stats…' });
+  const stats = computeStats();
+
+  self.postMessage({ type: 'ready', total: D.n, opts: D.opts, stats });
 
   // load display data in background immediately after signalling ready
   loadDisplay();
@@ -238,6 +241,69 @@ function buildRow(i) {
     synopsis:        X?.synopsis[i]       ?? null,
     background:      X?.background[i]     ?? null,
   };
+}
+
+// ── stats: histograms + value counts ─────────────────────────────────────────
+function computeStats() {
+  const n = D.n;
+  const BUCKETS = 28;
+
+  // Numeric fields: compute actual [min,max] and normalised histogram buckets.
+  // Log-scale fields use log10 so the histogram is evenly distributed despite skew.
+  const NUM_FIELDS = [
+    { key:'score',     ta:ta_score,     log:false },
+    { key:'scored_by', ta:ta_scored_by, log:true  },
+    { key:'rank',      ta:ta_rank,      log:false },
+    { key:'members',   ta:ta_members,   log:true  },
+    { key:'favorites', ta:ta_favorites, log:true  },
+    { key:'episodes',  ta:ta_episodes,  log:false },
+    { key:'year',      ta:ta_year,      log:false },
+  ];
+
+  const histograms  = {};
+  const fieldRanges = {};
+
+  for (const { key, ta, log } of NUM_FIELDS) {
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < n; i++) {
+      const v = ta[i]; if (v <= 0 || isNaN(v)) continue;
+      if (v < lo) lo = v; if (v > hi) hi = v;
+    }
+    if (lo === Infinity) { histograms[key] = []; fieldRanges[key] = [0,1]; continue; }
+    fieldRanges[key] = [lo, hi];
+
+    const sLo = log ? Math.log10(Math.max(1, lo)) : lo;
+    const sHi = log ? Math.log10(hi) : hi;
+    const span = sHi - sLo || 1;
+    const counts = new Array(BUCKETS).fill(0);
+    for (let i = 0; i < n; i++) {
+      const v = ta[i]; if (v <= 0 || isNaN(v)) continue;
+      const sv = log ? Math.log10(Math.max(1, v)) : v;
+      counts[Math.min(BUCKETS-1, Math.floor((sv - sLo) / span * BUCKETS))]++;
+    }
+    const mx = Math.max(...counts);
+    histograms[key] = counts.map(c => mx > 0 ? c / mx : 0);
+  }
+
+  // Value counts for chips
+  const counts = {};
+  ['type','status','season','rating','source','broadcast_day'].forEach(f => {
+    counts[f] = {};
+    D[f].forEach(v => { if (v) counts[f][v] = (counts[f][v]||0) + 1; });
+  });
+  counts.airing = {
+    Airing:   D.airing.reduce((s,v) => s+(v?1:0), 0),
+    Finished: D.airing.reduce((s,v) => s+(v?0:1), 0),
+  };
+  ['genres','themes','demographics','studios'].forEach(f => {
+    counts[f] = {};
+    D[f].forEach(v => {
+      if (!v) return;
+      v.split(', ').filter(Boolean).forEach(t => { counts[f][t] = (counts[f][t]||0)+1; });
+    });
+  });
+
+  return { histograms, fieldRanges, counts };
 }
 
 // ── message handler ───────────────────────────────────────────────────────────

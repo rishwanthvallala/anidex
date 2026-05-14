@@ -73,7 +73,7 @@
   --gold:     #E8B84B;
   --goldbg:   rgba(232,184,75,.1);
 
-  --sidebar:  272px;
+  --sidebar:  292px;
   --topbar-h: 50px;
 
   --ff-brand: 'Cormorant Garamond', Georgia, serif;
@@ -259,40 +259,87 @@ body::after {
 .fb { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 5px; }
 .fb.hidden { display: none; }
 
-input[type=text].si, input[type=number].si {
+/* text search input */
+input[type=text].si {
   width: 100%; background: var(--s3); border: 1px solid var(--border);
   border-radius: 4px; color: var(--text); padding: 6px 10px;
   font-size: 12px; font-family: var(--ff-ui); outline: none;
   transition: border-color .15s, box-shadow .15s;
 }
-input[type=text].si:focus, input[type=number].si:focus {
-  border-color: var(--v); box-shadow: 0 0 0 2px rgba(43,111,232,.12);
-}
-input[type=number].si { font-family: var(--ff-mono); font-size: 11px; }
+input[type=text].si:focus { border-color: var(--v); box-shadow: 0 0 0 2px rgba(43,111,232,.12); }
 input.si::placeholder { color: var(--dim); }
-input[type=number].si::-webkit-inner-spin-button { opacity: .3; }
 
-.rr { display: flex; align-items: center; gap: 5px; }
-.rr .si { flex: 1; min-width: 0; }
-.rr > span { color: var(--dim); font-size: 12px; flex-shrink: 0; font-family: var(--ff-mono); }
+/* ── range slider with histogram ── */
+.rs-wrap { padding: 2px 0 8px; }
+.rs-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.rs-values { font-family: var(--ff-mono); font-size: 10px; color: var(--v2); letter-spacing: .03em; }
+.rs-values.inactive { color: var(--dim); }
 
-.pills { display: flex; flex-wrap: wrap; gap: 4px; }
-.pill {
-  border: 1px solid var(--border); border-radius: 3px;
-  padding: 3px 9px; font-size: 11px; font-weight: 400;
-  cursor: pointer; color: var(--text2); background: transparent;
-  user-select: none; transition: all .12s; line-height: 1.45;
-  font-family: var(--ff-ui); letter-spacing: .01em;
+.rs-hist { display: flex; align-items: flex-end; gap: 1px; height: 36px; margin-bottom: 4px; }
+.rs-bar { flex: 1; border-radius: 1px 1px 0 0; background: var(--border2); transition: background .15s, height .1s; min-height: 2px; }
+.rs-bar.in { background: var(--v); opacity: .7; }
+
+.rs-track-wrap { position: relative; height: 20px; }
+.rs-track { position: absolute; top: 50%; transform: translateY(-50%); inset-inline: 0; height: 3px; background: var(--border2); border-radius: 2px; pointer-events: none; }
+.rs-fill  { position: absolute; top: 0; height: 100%; background: var(--v); border-radius: 2px; transition: left .05s, width .05s; }
+
+.rs-thumb {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  -webkit-appearance: none; appearance: none;
+  background: transparent; pointer-events: none; margin: 0; padding: 0;
 }
-.pill:hover { border-color: var(--v); color: var(--v2); background: var(--vbg); }
-.pill.on {
-  background: var(--v); border-color: var(--v);
-  color: #fff; box-shadow: 0 0 12px var(--vglow);
+.rs-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--v2); border: 2px solid var(--bg);
+  cursor: pointer; pointer-events: all;
+  box-shadow: 0 0 0 2px rgba(43,111,232,.3);
+  transition: transform .1s, box-shadow .1s;
 }
+.rs-thumb::-webkit-slider-thumb:hover { transform: scale(1.2); box-shadow: 0 0 0 3px rgba(43,111,232,.4); }
+.rs-thumb::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--v2); border: 2px solid var(--bg);
+  cursor: pointer; pointer-events: all; box-sizing: border-box;
+}
+.rs-lo { z-index: 3; } .rs-hi { z-index: 4; }
+.rs-lo.at-max { z-index: 5; }
 
-.tag-list { display: flex; flex-wrap: wrap; gap: 3px; max-height: 132px; overflow-y: auto; margin-top: 2px; }
+.rs-reset { font-family: var(--ff-mono); font-size: 9px; color: var(--dim); cursor: pointer; letter-spacing: .04em; transition: color .1s; }
+.rs-reset:hover { color: var(--v2); }
+
+/* ── chips with counts ── */
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 4px 8px; cursor: pointer;
+  color: var(--text2); background: transparent; user-select: none;
+  font-size: 11px; font-weight: 500; font-family: var(--ff-ui);
+  transition: all .12s; line-height: 1.3;
+}
+.chip:hover { border-color: var(--v); color: var(--v2); background: var(--vbg); }
+.chip.on { background: var(--v); border-color: transparent; color: #fff; box-shadow: 0 0 10px var(--vglow); }
+.chip-count { font-family: var(--ff-mono); font-size: 9px; opacity: .6; }
+.chip.on .chip-count { opacity: .8; }
+
+/* tag list (searchable chips) */
+.tag-search { width: 100%; background: var(--s3); border: 1px solid var(--border); border-radius: 4px; color: var(--text); padding: 5px 9px; font-size: 11px; font-family: var(--ff-ui); outline: none; margin-bottom: 5px; transition: border-color .15s; }
+.tag-search:focus { border-color: var(--v); }
+.tag-search::placeholder { color: var(--dim); }
+.tag-list { display: flex; flex-wrap: wrap; gap: 3px; max-height: 128px; overflow-y: auto; }
 .tag-list::-webkit-scrollbar { width: 2px; }
 .tag-list::-webkit-scrollbar-thumb { background: var(--border2); }
+
+/* pill kept for compatibility */
+.pill {
+  border: 1px solid var(--border); border-radius: 3px;
+  padding: 3px 9px; font-size: 11px; cursor: pointer; color: var(--text2);
+  background: transparent; user-select: none; transition: all .12s;
+  font-family: var(--ff-ui);
+}
+.pill:hover { border-color: var(--v); color: var(--v2); background: var(--vbg); }
+.pill.on { background: var(--v); border-color: var(--v); color: #fff; }
 
 /* ── MAIN ────────────────────────────────────────────────────────────────── */
 #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -535,7 +582,7 @@ worker.onmessage = function(e) {
     workerReady = true;
     totalAnime = total;
     document.getElementById('loading').style.display = 'none';
-    buildSidebar(opts);
+    buildSidebar(opts, e.data.stats);
     document.getElementById('results-count').textContent = `${total.toLocaleString()} anime`;
     dispatch();
     return;
@@ -568,60 +615,198 @@ const sel = {
   source:new Set(), broadcast_day:new Set(), airing:new Set(),
   genres:new Set(), themes:new Set(), demographics:new Set(), studios:new Set(),
 };
+// Range slider state: key → { lo, hi, min, max, log, active }
+const rsState = {};
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+function fmtK(v) {
+  if (v >= 1e6) return (v/1e6).toFixed(1)+'M';
+  if (v >= 1e3) return Math.round(v/1e3)+'k';
+  return Math.round(v).toString();
+}
+
+// Map a 0-1000 slider position to actual value (linear or log)
+function posToVal(pos, min, max, log) {
+  const t = pos / 1000;
+  if (log) {
+    const lMin = Math.log10(Math.max(1, min)), lMax = Math.log10(max);
+    return Math.pow(10, lMin + t * (lMax - lMin));
+  }
+  return min + t * (max - min);
+}
+// Map actual value to 0-1000 position
+function valToPos(v, min, max, log) {
+  if (log) {
+    const lMin = Math.log10(Math.max(1, min)), lMax = Math.log10(max);
+    return Math.round((Math.log10(Math.max(1, v)) - lMin) / (lMax - lMin) * 1000);
+  }
+  return Math.round((v - min) / (max - min) * 1000);
+}
+
+// ── range filter config ───────────────────────────────────────────────────────
+const RANGE_CFG = [
+  { key:'score',     label:'Score',     log:false, fmt:v => v.toFixed(1) },
+  { key:'scored_by', label:'Scored by', log:true,  fmt:v => fmtK(v) },
+  { key:'rank',      label:'Rank',      log:false, fmt:v => '#'+String(Math.round(v)).padStart(4,'0') },
+  { key:'members',   label:'Members',   log:true,  fmt:v => fmtK(v) },
+  { key:'favorites', label:'Favorites', log:true,  fmt:v => fmtK(v) },
+  { key:'episodes',  label:'Episodes',  log:false, fmt:v => Math.round(v) },
+  { key:'year',      label:'Year',      log:false, fmt:v => Math.round(v) },
+];
+
+const PILL_CFG = [
+  { key:'type',          label:'Type' },
+  { key:'status',        label:'Status' },
+  { key:'season',        label:'Season' },
+  { key:'rating',        label:'Age Rating' },
+  { key:'source',        label:'Source' },
+  { key:'broadcast_day', label:'Broadcast Day' },
+  { key:'airing',        label:'Airing' },
+];
+const TAG_CFG = [
+  { key:'genres',       label:'Genres' },
+  { key:'themes',       label:'Themes' },
+  { key:'demographics', label:'Demographics' },
+  { key:'studios',      label:'Studios' },
+];
+const PILL_FIELDS = PILL_CFG.map(c => c.key);
+const TAG_FIELDS  = TAG_CFG.map(c => c.key);
 
 // ── sidebar builder ───────────────────────────────────────────────────────────
-const PILL_FIELDS = ['type','status','season','rating','source','broadcast_day','airing'];
-const TAG_FIELDS  = ['genres','themes','demographics','studios'];
-
-function buildSidebar(opts) {
+function buildSidebar(opts, stats) {
   const sb = document.getElementById('sidebar');
   sb.innerHTML = '';
 
-  sb.appendChild(section('Search', `<input class="si" type="text" id="f-title" placeholder="Title…" oninput="debounce()">`));
+  // title search
+  sb.appendChild(section('Search',
+    `<input class="si" type="text" id="f-title" placeholder="Title…" oninput="debounce()">`
+  ));
 
-  const ranges = [
-    ['Score',     'score',     0, 10,   0.1],
-    ['Scored by', 'scored_by', 0, '',   10000],
-    ['Rank',      'rank',      1, '',   1],
-    ['Members',   'members',   0, '',   10000],
-    ['Favorites', 'favorites', 0, '',   1000],
-    ['Episodes',  'episodes',  0, '',   1],
-    ['Year',      'year',      1900, 2030, 1],
-  ];
-  for (const [label, key, mn, mx, step] of ranges) {
-    sb.appendChild(section(label,
-      `<div class="rr">
-        <input class="si" type="number" id="f-min-${key}" placeholder="min" min="${mn}" ${mx?`max="${mx}"`:''} step="${step}" oninput="dispatch()">
-        <span>—</span>
-        <input class="si" type="number" id="f-max-${key}" placeholder="max" min="${mn}" ${mx?`max="${mx}"`:''} step="${step}" oninput="dispatch()">
-      </div>`
-    ));
+  // range sliders with histograms
+  for (const cfg of RANGE_CFG) {
+    const fr = stats?.fieldRanges?.[cfg.key];
+    const hist = stats?.histograms?.[cfg.key] || [];
+    if (!fr) continue;
+    const [mn, mx] = fr;
+    rsState[cfg.key] = { lo: mn, hi: mx, min: mn, max: mx, log: cfg.log, fmt: cfg.fmt, active: false };
+    sb.appendChild(section(cfg.label, buildRangeSlider(cfg.key, mn, mx, cfg.log, cfg.fmt, hist)));
+    initRangeSlider(cfg.key);
   }
 
-  const pillLabels = { type:'Type', status:'Status', season:'Season', rating:'Age Rating', source:'Source', broadcast_day:'Broadcast Day', airing:'Airing' };
-  for (const field of PILL_FIELDS) {
-    const values = opts[field] || [];
-    sb.appendChild(section(pillLabels[field] || field,
-      `<div class="pills">${values.map(v =>
-        `<div class="pill" data-f="${field}" data-v="${esc(v)}" onclick="togglePill(this,'${field}','${esc(v)}')">${esc(v)}</div>`
-      ).join('')}</div>`
-    ));
+  // pill chips with counts
+  for (const { key, label } of PILL_CFG) {
+    const counts = stats?.counts?.[key] || {};
+    const values = opts[key] || [];
+    const html = `<div class="chips">${values.map(v => {
+      const c = counts[v] || 0;
+      return `<div class="chip" data-f="${key}" data-v="${esc(v)}" onclick="toggleChip(this,'${key}','${esc(v)}')">${esc(v)}<span class="chip-count">${fmtK(c)}</span></div>`;
+    }).join('')}</div>`;
+    sb.appendChild(section(label, html));
   }
 
-  const tagLabels = { genres:'Genres', themes:'Themes', demographics:'Demographics', studios:'Studios' };
-  for (const field of TAG_FIELDS) {
-    const values = opts[field] || [];
-    sb.appendChild(section(tagLabels[field] || field,
-      `<input class="si" type="text" placeholder="Search…" oninput="filterTags('${field}',this.value)">
-       <div class="tag-list" id="tl-${field}">${values.map(v =>
-         `<div class="pill" data-f="${field}" data-v="${esc(v)}" onclick="togglePill(this,'${field}','${esc(v)}')">${esc(v)}</div>`
-       ).join('')}</div>`
-    ));
+  // tag chips with counts + search
+  for (const { key, label } of TAG_CFG) {
+    const counts = stats?.counts?.[key] || {};
+    const values = (opts[key] || []).sort((a,b) => (counts[b]||0) - (counts[a]||0)); // sort by count desc
+    const html = `
+      <input class="tag-search" type="text" placeholder="Search ${label.toLowerCase()}…" oninput="filterTags('${key}',this.value)">
+      <div class="tag-list" id="tl-${key}">${values.map(v => {
+        const c = counts[v] || 0;
+        return `<div class="chip" data-f="${key}" data-v="${esc(v)}" onclick="toggleChip(this,'${key}','${esc(v)}')">${esc(v)}<span class="chip-count">${fmtK(c)}</span></div>`;
+      }).join('')}</div>`;
+    sb.appendChild(section(label, html));
   }
 
   document.getElementById('sort-field').addEventListener('change', e => { sortField = e.target.value; currentPage = 0; dispatch(); });
   document.getElementById('sort-dir').addEventListener('change',   e => { sortDir   = e.target.value; currentPage = 0; dispatch(); });
   document.getElementById('clear-all').addEventListener('click', clearAll);
+}
+
+// ── range slider DOM builder ──────────────────────────────────────────────────
+function buildRangeSlider(key, mn, mx, log, fmt, hist) {
+  const bars = hist.map(h =>
+    `<div class="rs-bar" style="height:${Math.max(4, h*100).toFixed(1)}%"></div>`
+  ).join('');
+  return `<div class="rs-wrap" id="rs-${key}">
+    <div class="rs-header">
+      <span class="rs-values inactive" id="rsv-${key}">${fmt(mn)} — ${fmt(mx)}</span>
+      <span class="rs-reset" onclick="resetRange('${key}')">reset</span>
+    </div>
+    <div class="rs-hist" id="rsh-${key}">${bars}</div>
+    <div class="rs-track-wrap">
+      <div class="rs-track"><div class="rs-fill" id="rsf-${key}"></div></div>
+      <input type="range" class="rs-thumb rs-lo" id="rslo-${key}" min="0" max="1000" step="1" value="0">
+      <input type="range" class="rs-thumb rs-hi" id="rshi-${key}" min="0" max="1000" step="1" value="1000">
+    </div>
+  </div>`;
+}
+
+function initRangeSlider(key) {
+  // defer until DOM is appended
+  requestAnimationFrame(() => {
+    const lo  = document.getElementById(`rslo-${key}`);
+    const hi  = document.getElementById(`rshi-${key}`);
+    const fill= document.getElementById(`rsf-${key}`);
+    const lbl = document.getElementById(`rsv-${key}`);
+    const hist= document.getElementById(`rsh-${key}`);
+    if (!lo || !hi) return;
+    const st  = rsState[key];
+    const bars= hist ? [...hist.querySelectorAll('.rs-bar')] : [];
+    const n   = bars.length;
+
+    function update(dispatch_ = true) {
+      let lv = +lo.value, hv = +hi.value;
+      if (lv > hv) { if (lo === document.activeElement) lv = hv; else hv = lv; lo.value = lv; hi.value = hv; }
+      lo.classList.toggle('at-max', lv >= 1000);
+
+      const loFrac = lv / 1000, hiFrac = hv / 1000;
+      fill.style.left  = (loFrac * 100).toFixed(2) + '%';
+      fill.style.width = ((hiFrac - loFrac) * 100).toFixed(2) + '%';
+
+      const loVal = posToVal(lv, st.min, st.max, st.log);
+      const hiVal = posToVal(hv, st.min, st.max, st.log);
+      st.lo = loVal; st.hi = hiVal;
+      st.active = lv > 0 || hv < 1000;
+
+      lbl.textContent = `${st.fmt(loVal)} — ${st.fmt(hiVal)}`;
+      lbl.classList.toggle('inactive', !st.active);
+
+      // update histogram bar highlights
+      bars.forEach((bar, i) => {
+        const f = i / n;
+        bar.classList.toggle('in', f >= loFrac && f <= hiFrac);
+      });
+
+      if (dispatch_) { currentPage = 0; window.dispatch(); }
+    }
+
+    lo.addEventListener('input', () => update());
+    hi.addEventListener('input', () => update());
+    update(false); // initial render without dispatching
+  });
+}
+
+function resetRange(key) {
+  const lo = document.getElementById(`rslo-${key}`);
+  const hi = document.getElementById(`rshi-${key}`);
+  if (!lo || !hi) return;
+  lo.value = 0; hi.value = 1000;
+  lo.dispatchEvent(new Event('input'));
+}
+
+// ── chip toggles ──────────────────────────────────────────────────────────────
+function toggleChip(el, field, val) {
+  if (sel[field].has(val)) { sel[field].delete(val); el.classList.remove('on'); }
+  else                      { sel[field].add(val);    el.classList.add('on'); }
+  currentPage = 0; dispatch();
+}
+function togglePill(el, field, val) { toggleChip(el, field, val); } // back-compat
+
+function filterTags(field, q) {
+  const lq = q.toLowerCase();
+  document.querySelectorAll(`#tl-${field} .chip`).forEach(c => {
+    c.style.display = c.dataset.v.toLowerCase().includes(lq) ? '' : 'none';
+  });
 }
 
 function section(title, innerHtml) {
@@ -631,34 +816,34 @@ function section(title, innerHtml) {
   return div;
 }
 function toggleSection(ft) { ft.classList.toggle('open'); ft.nextElementSibling.classList.toggle('hidden'); }
-function filterTags(field, q) {
-  const lq = q.toLowerCase();
-  document.querySelectorAll(`#tl-${field} .pill`).forEach(p => p.style.display = p.dataset.v.toLowerCase().includes(lq) ? '' : 'none');
-}
-function togglePill(el, field, val) {
-  if (sel[field].has(val)) { sel[field].delete(val); el.classList.remove('on'); }
-  else                      { sel[field].add(val);    el.classList.add('on'); }
-  currentPage = 0; dispatch();
-}
 
 // ── dispatch ──────────────────────────────────────────────────────────────────
 let debTimer;
 function debounce() { clearTimeout(debTimer); debTimer = setTimeout(dispatch, 160); }
-function numVal(id) { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? null : v; }
+
+function getRng(key) {
+  const s = rsState[key];
+  return s?.active ? [s.lo, s.hi] : [null, null];
+}
 
 function dispatch() {
   if (!workerReady) return;
   const id = ++pendingId;
   const t0 = performance.now();
+
+  const [minScore,    maxScore]    = getRng('score');
+  const [minScoredBy, maxScoredBy] = getRng('scored_by');
+  const [minRank,     maxRank]     = getRng('rank');
+  const [minMembers,  maxMembers]  = getRng('members');
+  const [minFav,      maxFav]      = getRng('favorites');
+  const [minEp,       maxEp]       = getRng('episodes');
+  const [minYear,     maxYear]     = getRng('year');
+
   const filters = {
-    title:       document.getElementById('f-title')?.value || '',
-    minScore:    numVal('f-min-score'),    maxScore:    numVal('f-max-score'),
-    minScoredBy: numVal('f-min-scored_by'),maxScoredBy: numVal('f-max-scored_by'),
-    minRank:     numVal('f-min-rank'),     maxRank:     numVal('f-max-rank'),
-    minMembers:  numVal('f-min-members'),  maxMembers:  numVal('f-max-members'),
-    minFav:      numVal('f-min-favorites'),maxFav:      numVal('f-max-favorites'),
-    minEp:       numVal('f-min-episodes'), maxEp:       numVal('f-max-episodes'),
-    minYear:     numVal('f-min-year'),     maxYear:     numVal('f-max-year'),
+    title: document.getElementById('f-title')?.value || '',
+    minScore, maxScore, minScoredBy, maxScoredBy,
+    minRank, maxRank, minMembers, maxMembers,
+    minFav, maxFav, minEp, maxEp, minYear, maxYear,
     type:[...sel.type], status:[...sel.status], season:[...sel.season],
     rating:[...sel.rating], source:[...sel.source], broadcast_day:[...sel.broadcast_day],
     airing:[...sel.airing], genres:[...sel.genres], themes:[...sel.themes],
@@ -677,7 +862,7 @@ function dispatch() {
 function updateBadge(f) {
   let n = 0;
   if (f.title) n++;
-  ['minScore','maxScore','minScoredBy','maxScoredBy','minRank','maxRank','minMembers','maxMembers','minFav','maxFav','minEp','maxEp','minYear','maxYear'].forEach(k => { if (f[k] != null) n++; });
+  Object.values(rsState).forEach(s => { if (s.active) n++; });
   [...PILL_FIELDS,...TAG_FIELDS].forEach(field => n += sel[field].size);
   const b = document.getElementById('active-badge');
   b.textContent = n + (n === 1 ? ' filter' : ' filters');
@@ -685,9 +870,14 @@ function updateBadge(f) {
 }
 
 function clearAll() {
-  document.querySelectorAll('.pill.on').forEach(p => p.classList.remove('on'));
+  // reset range sliders
+  document.querySelectorAll('.rs-lo').forEach(el => { el.value = 0; el.dispatchEvent(new Event('input')); });
+  document.querySelectorAll('.rs-hi').forEach(el => { el.value = 1000; el.dispatchEvent(new Event('input')); });
+  // clear chips
+  document.querySelectorAll('.chip.on').forEach(c => c.classList.remove('on'));
   Object.values(sel).forEach(s => s.clear());
-  document.querySelectorAll('input[type=number], input[type=text]').forEach(i => i.value = '');
+  // clear title search
+  const ft = document.getElementById('f-title'); if (ft) ft.value = '';
   currentPage = 0; dispatch();
 }
 
