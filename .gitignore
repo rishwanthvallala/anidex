@@ -5,13 +5,10 @@ mal_anime.ndjson
 # Scraper progress checkpoint
 .scrape_progress.json
 
-# Server-mode Brotli payloads — not needed in the repo
+# Brotli payloads — server mode only, not needed in the repo
+# (serverless mode uses .gz versions which ARE committed)
 main.json.br
-main.bin.br
 display.json.br
-
-# Old JSON payload (replaced by binary format)
-main.json.gz
 
 # Claude Code local settings
 .claude/

@@ -64,6 +64,6 @@ http.createServer((req, res) => {
 
 }).listen(PORT, () => {
   console.log(`http://localhost:${PORT}/dashboard.html`);
-  console.log(`main.bin   → ${(fs.statSync('main.bin.br').size/1024).toFixed(0)}KB brotli (binary)`);
+  console.log(`main.json  → ${(fs.statSync('main.json.br').size/1024).toFixed(0)}KB brotli`);
   console.log(`display.json → ${(fs.statSync('display.json.br').size/1024).toFixed(0)}KB brotli (background)`);
 });

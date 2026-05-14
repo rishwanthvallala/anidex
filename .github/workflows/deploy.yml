@@ -33,7 +33,7 @@ jobs:
           mkdir dist
           cp dashboard.html dist/index.html
           cp worker.js config.js logo.png robots.txt sitemap.xml dist/
-          cp main.bin.gz display.json.gz dist/
+          cp main.json.gz display.json.gz dist/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
