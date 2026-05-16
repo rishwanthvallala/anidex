@@ -1,0 +1,74 @@
+name: Scrape MAL + Deploy AniDex
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'   # 1st of every month at 3am UTC
+  workflow_dispatch:       # manual trigger from Actions tab (with optional input)
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'manual refresh'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  scrape-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90   # scraper ~30min + preprocess ~2min + headroom
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Scrape MAL via Jikan API
+        run: node scrape_mal.js
+        timeout-minutes: 60
+        # scrape_mal.js writes mal_anime.ndjson and saves progress to
+        # .scrape_progress.json after every page — safe to retry if it times out.
+        # Re-run the workflow and it resumes from last page... but GitHub Actions
+        # doesn't persist workspace between runs, so we always start fresh here.
+        # 30,449 anime × ~420ms = ~13min actual scrape time.
+
+      - name: Preprocess to gz
+        run: node preprocess_v2.js
+        # Produces main.json.gz + display.json.gz in the workspace.
+        # These overwrite the committed baseline files.
+
+      - name: Assemble dist/
+        run: |
+          mkdir dist
+          cp dashboard.html dist/index.html
+          cp worker.js logo.png robots.txt sitemap.xml dist/
+          cp main.json.gz display.json.gz dist/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy AniDex
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Summary
+        run: |
+          echo "## AniDex Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ steps.deploy.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** ${{ github.event_name == 'schedule' && 'Monthly schedule' || inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "**main.json.gz:** $(du -sh main.json.gz | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          echo "**display.json.gz:** $(du -sh display.json.gz | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          echo "**Anime scraped:** $(wc -l < mal_anime.ndjson)" >> $GITHUB_STEP_SUMMARY
