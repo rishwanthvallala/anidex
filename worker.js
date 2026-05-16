@@ -32,15 +32,90 @@ async function fetchJson(base) {
   return new TextDecoder().decode(merged);
 }
 
+// ── IndexedDB helpers ─────────────────────────────────────────────────────────
+const IDB_NAME    = 'anidex';
+const IDB_VERSION = 1;
+const IDB_STORE   = 'cache';
+const DATA_KEY    = 'main_v1'; // bump suffix when data format changes
+
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE);
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = () => rej(req.error);
+  });
+}
+function idbGet(db, key) {
+  return new Promise((res, rej) => {
+    const req = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => res(req.result);
+    req.onerror   = () => rej(req.error);
+  });
+}
+function idbPut(db, key, value) {
+  return new Promise((res, rej) => {
+    const tx  = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = res;
+    tx.onerror    = () => rej(tx.error);
+  });
+}
+
 // ── load ─────────────────────────────────────────────────────────────────────
 async function loadMain() {
-  self.postMessage({ type: 'progress', pct: 10, msg: 'Downloading main data…' });
+  // 1. Try IndexedDB cache first (repeat visits skip network entirely)
+  let db;
+  try {
+    db = await idbOpen();
+    const cached = await idbGet(db, DATA_KEY);
+    if (cached?.json) {
+      self.postMessage({ type: 'progress', pct: 60, msg: 'Loading from cache…' });
+      D = JSON.parse(cached.json);
+      buildTypedArrays();
+      buildIndexes();
+      self.postMessage({ type: 'ready', total: D.n, opts: D.opts });
+      // stats + display still run in background
+      setTimeout(() => {
+        const stats = computeStats();
+        self.postMessage({ type: 'stats', opts: D.opts, stats });
+        loadDisplay();
+      }, 0);
+      return;
+    }
+  } catch (_) { /* IDB unavailable — fall through to network */ }
+
+  // 2. Fresh fetch
+  self.postMessage({ type: 'progress', pct: 10, msg: 'Downloading…' });
   const text = await fetchJson('main.json');
+
   self.postMessage({ type: 'progress', pct: 55, msg: 'Parsing…' });
   D = JSON.parse(text);
 
-  self.postMessage({ type: 'progress', pct: 75, msg: 'Building typed arrays…' });
-  const n = D.n;
+  self.postMessage({ type: 'progress', pct: 75, msg: 'Building indexes…' });
+  buildTypedArrays();
+  buildIndexes();
+
+  // 3. Signal ready — UI is now interactive
+  self.postMessage({ type: 'ready', total: D.n, opts: D.opts });
+
+  // 4. Everything else runs off the critical path
+  setTimeout(async () => {
+    // Compute histogram/count stats and send to update chip counts
+    const stats = computeStats();
+    self.postMessage({ type: 'stats', opts: D.opts, stats });
+
+    // Cache to IDB for next visit (store the raw JSON string — cheapest to restore)
+    if (db) {
+      try { await idbPut(db, DATA_KEY, { json: text }); } catch (_) {}
+    }
+
+    // Load display data (images, synopsis, etc.)
+    loadDisplay();
+  }, 0);
+}
+
+function buildTypedArrays() {
   ta_score      = new Float64Array(D.score.map(v => v ?? NaN));
   ta_scored_by  = new Int32Array(D.scored_by);
   ta_rank       = new Int32Array(D.rank);
@@ -49,17 +124,6 @@ async function loadMain() {
   ta_favorites  = new Int32Array(D.favorites);
   ta_episodes   = new Int32Array(D.episodes);
   ta_year       = new Int32Array(D.year);
-
-  self.postMessage({ type: 'progress', pct: 88, msg: 'Building indexes…' });
-  buildIndexes();
-
-  self.postMessage({ type: 'progress', pct: 96, msg: 'Computing stats…' });
-  const stats = computeStats();
-
-  self.postMessage({ type: 'ready', total: D.n, opts: D.opts, stats });
-
-  // load display data in background immediately after signalling ready
-  loadDisplay();
 }
 
 async function loadDisplay() {
