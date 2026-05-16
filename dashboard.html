@@ -12,10 +12,6 @@
 <link rel="icon" type="image/png" href="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
 
-<!-- Preload critical data — starts download before Worker even spawns (~210ms saved) -->
-<link rel="preload" href="main.json.gz" as="fetch">
-<link rel="preload" href="display.json.gz" as="fetch">
-
 <!-- Open Graph -->
 <meta property="og:type"        content="website">
 <meta property="og:title"       content="AniDex — Anime Index">
@@ -581,6 +577,12 @@ tbody tr:hover .thumb {
 </div>
 
 <script>
+// ── early fetches — start immediately, main thread can reach network before worker spawns ──
+// Fetched as ArrayBuffers and transferred (zero-copy) to the worker.
+// Worker cannot use the main thread's preload cache, so we fetch here and hand off.
+const mainFetchP    = fetch('main.json.gz').then(r => r.arrayBuffer());
+const displayFetchP = fetch('display.json.gz').then(r => r.arrayBuffer());
+
 // ── worker ────────────────────────────────────────────────────────────────────
 const worker = new Worker('worker.js');
 let workerReady = false;
@@ -598,9 +600,10 @@ worker.onmessage = function(e) {
     workerReady = true;
     totalAnime = total;
     document.getElementById('loading').style.display = 'none';
-    buildSidebar(opts, null); // stats arrive separately — chips show without counts first
+    buildSidebar(opts, null);
     document.getElementById('results-count').textContent = `${total.toLocaleString()} anime`;
     dispatch();
+    maybeSendDisplay(); // send display buffer now that worker is ready for it
     return;
   }
   if (type === 'stats') {
@@ -626,6 +629,17 @@ worker.onmessage = function(e) {
   }
 };
 worker.postMessage({ type: 'load', mode: (typeof CONFIG !== 'undefined' ? CONFIG.mode : 'serverless') });
+
+// Transfer main buffer to worker as soon as it arrives (zero-copy transferable)
+mainFetchP.then(buf => worker.postMessage({ type: 'main-buffer', buffer: buf }, [buf]));
+
+// Transfer display buffer after worker signals ready (don't race with main data)
+let displayBufSent = false;
+function maybeSendDisplay() {
+  if (displayBufSent) return;
+  displayBufSent = true;
+  displayFetchP.then(buf => worker.postMessage({ type: 'display-buffer', buffer: buf }, [buf]));
+}
 
 // ── state ─────────────────────────────────────────────────────────────────────
 let totalAnime = 0, currentPage = 0, perPage = 50, totalPages = 1;

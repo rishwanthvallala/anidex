@@ -1,24 +1,26 @@
 // Web Worker — owns all data, handles filter/sort/paginate off the main thread.
-// Supports two fetch modes (set via config.js → passed in the 'load' message):
-//   'server'     → fetch main.json  (server sets Content-Encoding: br)
-//   'serverless' → fetch main.json.gz and decompress with DecompressionStream
+// Data flow:
+//   serverless — main thread fetches .gz files early and transfers ArrayBuffers
+//                (zero-copy) so the worker never makes its own network request.
+//   server     — worker fetches directly; server sets Content-Encoding: br.
+//   IDB cache  — on repeat visits, skip network entirely.
 
-let D = null;       // main data (always present after ready)
-let X = null;       // display data (arrives later, enriches rows)
+let D = null;
+let X = null;
 let ta_score, ta_scored_by, ta_rank, ta_popularity, ta_members, ta_favorites, ta_episodes, ta_year;
-let idx = {};       // inverted indexes, built from D
+let idx  = {};
 let MODE = 'serverless';
 
-// ── fetch helpers ─────────────────────────────────────────────────────────────
-async function fetchJson(base) {
-  if (MODE === 'server') {
-    // server transparently decompresses Brotli via Content-Encoding header
-    return fetch(base).then(r => r.text());
-  }
-  // serverless: fetch the .gz file and decompress manually with DecompressionStream
-  const res = await fetch(`${base}.gz`);
-  const ds  = new DecompressionStream('gzip');
-  const reader = res.body.pipeThrough(ds).getReader();
+// Promises that resolve when the main thread transfers a buffer
+let _resolveMain    = null;
+let _resolveDisplay = null;
+const mainBufP    = new Promise(res => (_resolveMain    = res));
+const displayBufP = new Promise(res => (_resolveDisplay = res));
+
+// ── decompress helpers ────────────────────────────────────────────────────────
+async function decompressBuffer(buffer) {
+  const ds     = new DecompressionStream('gzip');
+  const reader = new Response(buffer).body.pipeThrough(ds).getReader();
   const chunks = [];
   while (true) {
     const { done, value } = await reader.read();
@@ -30,6 +32,13 @@ async function fetchJson(base) {
   let off = 0;
   for (const c of chunks) { merged.set(c, off); off += c.length; }
   return new TextDecoder().decode(merged);
+}
+
+// Fallback: worker fetches itself (server mode or if buffer never arrives)
+async function fetchJson(base) {
+  if (MODE === 'server') return fetch(base).then(r => r.text());
+  const res = await fetch(`${base}.gz`);
+  return decompressBuffer(await res.arrayBuffer());
 }
 
 // ── IndexedDB helpers ─────────────────────────────────────────────────────────
@@ -85,9 +94,11 @@ async function loadMain() {
     }
   } catch (_) { /* IDB unavailable — fall through to network */ }
 
-  // 2. Fresh fetch
+  // 2. Fresh — wait for main thread's pre-fetched buffer (or self-fetch in server mode)
   self.postMessage({ type: 'progress', pct: 10, msg: 'Downloading…' });
-  const text = await fetchJson('main.json');
+  const text = MODE === 'serverless'
+    ? await decompressBuffer(await mainBufP)
+    : await fetchJson('main.json');
 
   self.postMessage({ type: 'progress', pct: 55, msg: 'Parsing…' });
   D = JSON.parse(text);
@@ -128,11 +139,13 @@ function buildTypedArrays() {
 
 async function loadDisplay() {
   try {
-    const text = await fetchJson('display.json');
+    const text = MODE === 'serverless'
+      ? await decompressBuffer(await displayBufP)
+      : await fetchJson('display.json');
     X = JSON.parse(text);
     self.postMessage({ type: 'enriched' });
   } catch(e) {
-    console.warn('display.json failed to load:', e.message);
+    console.warn('loadDisplay failed:', e.message);
   }
 }
 
@@ -374,6 +387,17 @@ function computeStats() {
 // ── message handler ───────────────────────────────────────────────────────────
 self.onmessage = async function(e) {
   const { type, id, filters, sort, page } = e.data;
+
+  // Main thread transfers pre-fetched gzip buffers — resolve the waiting promises
+  if (type === 'main-buffer') {
+    _resolveMain(e.data.buffer);
+    return;
+  }
+  if (type === 'display-buffer') {
+    _resolveDisplay(e.data.buffer);
+    return;
+  }
+
   if (type === 'load') {
     MODE = e.data.mode || 'serverless';
     try { await loadMain(); }
